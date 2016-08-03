@@ -10,18 +10,17 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import com.intellij.openapi.vcs.{ProjectLevelVcsManager, VcsRoot}
-import com.intellij.openapi.vcs.changes.{Change, ChangeList, ChangeListManagerImpl}
 import com.intellij.openapi.vcs.changes.ui.{ChangesListView, TreeModelBuilder}
+import com.intellij.openapi.vcs.changes.{Change, ChangeList, ChangeListManagerImpl}
+import com.intellij.openapi.vcs.{ProjectLevelVcsManager, VcsRoot}
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.tree.TreeUtil
-import git4idea.{GitBranch, GitRevisionNumber, GitVcs}
 import git4idea.changes.GitChangeUtils
 import git4idea.commands.{GitCommand, GitSimpleHandler}
 import git4idea.repo.{GitRepository, GitRepositoryImpl}
+import git4idea.{GitBranch, GitRevisionNumber, GitVcs}
 
-import collection.JavaConversions._
 import scala.collection.JavaConversions._
 /**
   * TODO add description
@@ -90,14 +89,18 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
 
   //GitCompareWithBranchAction
   private def getLastBranchRevision(currentBranch: GitBranch, gitRepo: GitRepository): GitRevisionNumber = {
-    gitRepo.getBranches.getLocalBranches
-      .filter(!_.equals(currentBranch))
-      .map((branch: GitBranch) => {
-        gitMergeBase(branch, currentBranch, gitRepo.getRoot)
-      })
-      .reduce((rev1: GitRevisionNumber, rev2: GitRevisionNumber) => {
-        if (rev1.compareTo(rev2) > 0) rev1 else rev2
-      })
+    val localBranches = gitRepo.getBranches.getLocalBranches.filter(!_.equals(currentBranch))
+
+    var latestRevision: GitRevisionNumber = gitMergeBase(localBranches.head, currentBranch, gitRepo.getRoot)
+    for (branch: GitBranch <- localBranches.tail) {
+      val revision: GitRevisionNumber = gitMergeBase(branch, currentBranch, gitRepo.getRoot)
+
+      if (latestRevision.compareTo(revision) < 0) {
+        latestRevision = revision
+      }
+    }
+
+    latestRevision
   }
 
 
@@ -106,17 +109,27 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
 
 
   private def getGitChangesSinceBranch(): Array[ChangeList] = {
-    projectVcsManager.getAllVcsRoots
-      .filter(_.getVcs.equals(gitVcs))
-      .map((gitVcsRoot: VcsRoot) => {
-        val repoRoot: VirtualFile = gitVcsRoot.getPath
-        val gitRepo: GitRepository = GitRepositoryImpl.getInstance(repoRoot, this.project, true)
-        val currentBranch: GitBranch = gitRepo.getCurrentBranch
+    val gitVcsRoots: Array[VcsRoot] = projectVcsManager.getAllVcsRoots.filter(_.getVcs.equals(gitVcs))
+
+    //TODO there has to be a better way to do this
+    val changes: Array[Option[ChangeList]] = for (gitVcsRoot: VcsRoot <- gitVcsRoots) yield {
+      val repoRoot: VirtualFile = gitVcsRoot.getPath
+      val gitRepo: GitRepository = GitRepositoryImpl.getInstance(repoRoot, this.project, true)
+      val currentBranch: GitBranch = gitRepo.getCurrentBranch
+
+      //TODO fix how we guess at the master branch
+      if (currentBranch.getName.equals("master") || currentBranch.getName.equals("svn/trunk")) {
+        None
+      }
+      else {
         val lastBranchRevision: GitRevisionNumber = getLastBranchRevision(currentBranch, gitRepo)
         val changes = GitChangeUtils.getDiff(this.project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
 
-        new GitBranchChangeList(currentBranch.getFullName, changes)
-      })
+        Some(new GitBranchChangeList(currentBranch.getName, currentBranch.getFullName, changes))
+      }
+    }
+
+    changes.filter(_.isDefined).map(_.get)
   }
   //val currentRevision = new GitRevisionNumber(branch)
 
@@ -207,9 +220,9 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
     override def canExpand: Boolean = true
   }
 
-  class GitBranchChangeList(val name: String, val changes: util.Collection[Change]) extends ChangeList {
+  class GitBranchChangeList(val name: String, val comment: String, val changes: util.Collection[Change]) extends ChangeList {
     override def getName: String = name
-    override def getComment: String = name
+    override def getComment: String = comment
     override def getChanges: util.Collection[Change] = changes
   }
 }
