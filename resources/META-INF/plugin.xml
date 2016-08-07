@@ -20,21 +20,23 @@
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Git Diff" icon="/MainToolWindow/git-icon.png" anchor="bottom" factoryClass="com.dylowen.gittrunkdiff.MainToolWindow" conditionClass="com.dylowen.gittrunkdiff.MainToolWindow" />
     </extensions>
+
     -->
     <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable displayName="Git Trunk" provider="com.dylowen.gittrunkdiff.config.GitTrunkConfigurableProvider"/>
         <changesViewContent tabName="Git Trunk" className="com.dylowen.gittrunkdiff.VcsTab" predicateClassName="com.dylowen.gittrunkdiff.ShowVcsTab" />
+        <!--<openapi.vcs.actions.AnnotateToggleAction.Provider implementation="com.dylowen.gittrunkdiff.AnnotateGitDiff"/>-->
     </extensions>
 
     <actions>
         <!-- Add your actions here -->
     </actions>
 
-    <!--
+<!--
     <project-components>
         <component>
-            <interface-class>com.dylowen.gittrunkdiff.GitDiffView</interface-class>
-            <implementation-class>com.dylowen.gittrunkdiff.GitDiffView</implementation-class>
+            <interface-class>com.dylowen.gittrunkdiff.Settings</interface-class>
+            <implementation-class>com.dylowen.gittrunkdiff.Settings</implementation-class>
         </component>
-    </project-components>
-    -->
+    </project-components>-->
 </idea-plugin>

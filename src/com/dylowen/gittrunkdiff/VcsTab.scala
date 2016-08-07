@@ -14,12 +14,12 @@ import com.intellij.openapi.vcs.changes.ui.ChangesViewContentProvider
  */
 /** {@link CommittedChangesViewManager} */
 
-class VcsTab(project: Project) extends ChangesViewContentProvider {
+class VcsTab(val project: Project) extends ChangesViewContentProvider {
 
   var gitDiffView: Option[GitDiffView] = None
 
   override def initContent(): JComponent = {
-    val gitDiffView = new GitDiffView(project)
+    val gitDiffView = new GitDiffView(this.project)
     this.gitDiffView = Some(gitDiffView)
 
     gitDiffView

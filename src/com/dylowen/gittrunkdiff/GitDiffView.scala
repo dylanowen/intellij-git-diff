@@ -2,18 +2,22 @@ package com.dylowen.gittrunkdiff
 
 import java.awt.BorderLayout
 import java.util
-import javax.swing.JPanel
+import javax.swing.{JPanel, JScrollPane}
 
+import com.dylowen.gittrunkdiff.Utils.GitReposGetter
+import com.dylowen.gittrunkdiff.config.Settings
+import com.intellij.icons.AllIcons
 import com.intellij.ide.{CommonActionsManager, TreeExpander}
 import com.intellij.openapi.actionSystem._
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.{DumbAwareAction, Project}
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.vcs.changes.ui.{ChangesListView, TreeModelBuilder}
 import com.intellij.openapi.vcs.changes.{Change, ChangeList, ChangeListManagerImpl}
 import com.intellij.openapi.vcs.{ProjectLevelVcsManager, VcsRoot}
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.ui.ScrollPaneFactory
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.tree.TreeUtil
 import git4idea.changes.GitChangeUtils
@@ -29,49 +33,70 @@ import scala.collection.JavaConversions._
   * @since Apr-2016
   */
 //http://www.jetbrains.org/intellij/sdk/docs/reference_guide/vcs_integration_for_plugins.html
-
 //GitCompareWithBranchAction
-
 object GitDiffView {
   //def getInstance(project: Project): GitDiffView = project.getComponent(classOf[GitDiffView])
   private val LOG: Logger = Logger.getInstance(GitDiffView.getClass)
 }
 
-
 //com.intellij.openapi.vcs.changes.ChangesViewManager
-class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
+class GitDiffView(implicit val project: Project) extends SimpleToolWindowPanel(false, true) {
   var disposed = false
 
-  val gitVcs = GitVcs.getInstance(this.project)
-  val projectVcsManager: ProjectLevelVcsManager = ProjectLevelVcsManager.getInstance(this.project)
+  val gitVcsRootsGetter: GitReposGetter = Utils.getGitRepos
 
+  val expander = new ChangesExpander()
   val changesView = new ChangesListView(this.project)
   val toolbarPanel: JPanel = new JPanel(new BorderLayout())
+
+  {
+    this.changesView.setMenuActions(ActionManager.getInstance.getAction("ChangesViewPopupMenu").asInstanceOf[DefaultActionGroup])
+    val scrollPane: JScrollPane = ScrollPaneFactory.createScrollPane(changesView)
+
+    setContent(scrollPane)
+
+    val visualActionsGroup: DefaultActionGroup = new DefaultActionGroup()
+
+    visualActionsGroup.add(new RefreshAction())
+    visualActionsGroup.add(CommonActionsManager.getInstance.createExpandAllAction(expander, toolbarPanel))
+    visualActionsGroup.add(CommonActionsManager.getInstance.createCollapseAllAction(expander, toolbarPanel))
+    //val showFlattenAction: ChangesViewManager#ToggleShowFlattenAction = new ChangesViewManager#ToggleShowFlattenAction
+    //showFlattenAction.registerCustomShortcutSet(new CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_P, ctrlMask)), panel)
+    //visualActionsGroup.add(showFlattenAction)
+
+    //implement this for showing the diff
+    ///visualActionsGroup.add(new ChangesViewManager#ToggleDetailsAction)
+
+    toolbarPanel.add(ActionManager.getInstance.createActionToolbar(ActionPlaces.CHANGES_VIEW_TOOLBAR, visualActionsGroup, false).getComponent, BorderLayout.CENTER)
+
+    this.setToolbar(toolbarPanel)
+
+    /*
+    this.project.getMessageBus.connect.subscribe(RemoteRevisionsCache.REMOTE_VERSION_CHANGED, new Runnable() {
+      def run() {
+        ApplicationManager.getApplication.invokeLater(new Runnable() {
+          def run() {
+            refreshView()
+          }
+        }, ModalityState.NON_MODAL, this.project.getDisposed)
+      }
+    })
+    */
+
+    //myProject.getMessageBus.connect.subscribe(, )
+
+    refreshView()
+  }
 
   //val progressLabel = new JPanel(new BorderLayout())
   //toolbarPanel.add(toolbarComponent, BorderLayout.WEST)
 
-  setContent(this.changesView)
-
 
   // Setup Toolbar
-  val visualActionsGroup: DefaultActionGroup = new DefaultActionGroup()
-  val expander = new ChangesExpander()
-  visualActionsGroup.add(CommonActionsManager.getInstance.createExpandAllAction(expander, toolbarPanel))
-  visualActionsGroup.add(CommonActionsManager.getInstance.createCollapseAllAction(expander, toolbarPanel))
-  //val showFlattenAction: ChangesViewManager#ToggleShowFlattenAction = new ChangesViewManager#ToggleShowFlattenAction
-  //showFlattenAction.registerCustomShortcutSet(new CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_P, ctrlMask)), panel)
-  //visualActionsGroup.add(showFlattenAction)
 
-  //implement this for showing the diff
-  ///visualActionsGroup.add(new ChangesViewManager#ToggleDetailsAction)
 
-  toolbarPanel.add(ActionManager.getInstance.createActionToolbar(ActionPlaces.CHANGES_VIEW_TOOLBAR, visualActionsGroup, false).getComponent, BorderLayout.CENTER)
 
-  this.setToolbar(toolbarPanel)
 
-  refreshView()
-  expander.expandAll()
 
   private def gitMergeBase(branchA: GitBranch, branchB: GitBranch, root: VirtualFile): GitRevisionNumber = gitMergeBase(branchA.getFullName, branchB.getFullName, root)
 
@@ -87,45 +112,32 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
     GitRevisionNumber.resolve(this.project, root, revisionString)
   }
 
-  //GitCompareWithBranchAction
-  private def getLastBranchRevision(currentBranch: GitBranch, gitRepo: GitRepository): GitRevisionNumber = {
-    val localBranches = gitRepo.getBranches.getLocalBranches.filter(!_.equals(currentBranch))
-
-    var latestRevision: GitRevisionNumber = gitMergeBase(localBranches.head, currentBranch, gitRepo.getRoot)
-    for (branch: GitBranch <- localBranches.tail) {
-      val revision: GitRevisionNumber = gitMergeBase(branch, currentBranch, gitRepo.getRoot)
-
-      if (latestRevision.compareTo(revision) < 0) {
-        latestRevision = revision
-      }
-    }
-
-    latestRevision
-  }
-
-
 
 
 
 
   private def getGitChangesSinceBranch(): Array[ChangeList] = {
-    val gitVcsRoots: Array[VcsRoot] = projectVcsManager.getAllVcsRoots.filter(_.getVcs.equals(gitVcs))
+    //TODO switch to git st vs git diff
+
+    val gitRepos: Array[GitRepository] = gitVcsRootsGetter()
 
     //TODO there has to be a better way to do this
-    val changes: Array[Option[ChangeList]] = for (gitVcsRoot: VcsRoot <- gitVcsRoots) yield {
-      val repoRoot: VirtualFile = gitVcsRoot.getPath
-      val gitRepo: GitRepository = GitRepositoryImpl.getInstance(repoRoot, this.project, true)
+    val changes: Array[Option[ChangeList]] = for (gitRepo: GitRepository <- gitRepos) yield {
       val currentBranch: GitBranch = gitRepo.getCurrentBranch
+      val master: GitBranch = Settings.getMasterBranch(gitRepo)
 
-      //TODO fix how we guess at the master branch
-      if (currentBranch.getName.equals("master") || currentBranch.getName.equals("svn/trunk")) {
-        None
-      }
-      else {
-        val lastBranchRevision: GitRevisionNumber = getLastBranchRevision(currentBranch, gitRepo)
+      if (!master.equals(currentBranch)) {
+        val repoRoot: VirtualFile = gitRepo.getRoot
+
+        val lastBranchRevision: GitRevisionNumber = gitMergeBase(master, currentBranch, repoRoot)
+
         val changes = GitChangeUtils.getDiff(this.project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
 
         Some(new GitBranchChangeList(currentBranch.getName, currentBranch.getFullName, changes))
+      }
+      else {
+        // we don't care if we're on the master branch already
+        None
       }
     }
 
@@ -140,9 +152,14 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
       return
     }
 
+    this.expander
+
     val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(this.project)
 
-    val changeLists: Array[ChangeList] = getGitChangesSinceBranch()
+    val gitChangeLists: Array[ChangeList] = getGitChangesSinceBranch()
+    val changeLists: Array[ChangeList] = (changeListManager.getChangeListsCopy ++ gitChangeLists).toArray
+
+
 
     this.changesView.updateModel(new TreeModelBuilder(this.project, this.changesView.isShowFlatten)
       .set(
@@ -158,6 +175,8 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
       .setUnversioned(changeListManager.getUnversionedFiles, changeListManager.getUnversionedFilesSize)
       .build
     )
+
+    expander.expandAll()
     //changeDetails()
   }
 
@@ -224,6 +243,10 @@ class GitDiffView(project: Project) extends SimpleToolWindowPanel(false, true) {
     override def getName: String = name
     override def getComment: String = comment
     override def getChanges: util.Collection[Change] = changes
+  }
+
+  private class RefreshAction() extends DumbAwareAction("Refresh", "Refresh Git", AllIcons.Actions.Refresh) {
+    override def actionPerformed(e: AnActionEvent): Unit = GitDiffView.this.refreshView()
   }
 }
 
@@ -297,8 +320,6 @@ class GitDiffView(val project: Project) {
     override def canExpand: Boolean = true
   }
 
-  private class RefreshAction() extends DumbAwareAction("Refresh", "Refresh Git", AllIcons.Actions.Refresh) {
-    override def actionPerformed(e: AnActionEvent): Unit = GitDiffView.this.refresh()
-  }
+
 }
 */
