@@ -16,6 +16,7 @@ class ApplicationConfigurableProvider() extends ConfigurableProviderImpl {
   override def getComponent: SettingsConfigurable = new SettingsConfigurable {
     {
       val showOwnToolbar: ShowOwnToolbarCheckBox = new ShowOwnToolbarCheckBox("Show In Own Toolbar")
+      this.settingsComponents = Array(showOwnToolbar)
 
       setLayout(new FlowLayout(FlowLayout.LEFT))
       val wrapper: JPanel = new JPanel()

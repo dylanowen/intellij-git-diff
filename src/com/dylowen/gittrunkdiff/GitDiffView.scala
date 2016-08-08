@@ -8,14 +8,18 @@ import com.dylowen.gittrunkdiff.Utils.GitReposGetter
 import com.dylowen.gittrunkdiff.settings.ProjectSettings
 import com.intellij.icons.AllIcons
 import com.intellij.ide.{CommonActionsManager, TreeExpander}
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem._
 import com.intellij.openapi.application.{ApplicationManager, ModalityState}
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.{DumbAwareAction, Project}
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vcs.changes._
 import com.intellij.openapi.vcs.changes.ui.{ChangesListView, TreeModelBuilder}
-import com.intellij.openapi.vcs.changes.{Change, ChangeList, ChangeListManagerImpl, RemoteRevisionsCache}
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.ScrollPaneFactory
+import com.intellij.util.Alarm
 import com.intellij.util.containers.MultiMap
 import com.intellij.util.ui.tree.TreeUtil
 import git4idea.changes.GitChangeUtils
@@ -34,7 +38,7 @@ import scala.collection.JavaConversions._
 //GitCompareWithBranchAction
 object GitDiffView {
   //def getInstance(project: Project): GitDiffView = project.getComponent(classOf[GitDiffView])
-  //private val LOG: Logger = Logger.getInstance(GitDiffView.getClass)
+  private val LOG: Logger = Logger.getInstance(GitDiffView.getClass)
 }
 
 //com.intellij.openapi.vcs.changes.ChangesViewManager
@@ -46,6 +50,9 @@ class GitDiffView()(implicit val project: Project) extends SimpleToolWindowPanel
   private val expander = new ChangesExpander()
   private val changesView = new ChangesListView(this.project)
   private val toolbarPanel: JPanel = new JPanel(new BorderLayout())
+
+  private val repaintAlarm: Alarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, this.project)
+  private val changeListener: ChangeListListener = new GitDiffChangelistListener()
 
   {
     this.changesView.setMenuActions(ActionManager.getInstance.getAction("ChangesViewPopupMenu").asInstanceOf[DefaultActionGroup])
@@ -69,6 +76,15 @@ class GitDiffView()(implicit val project: Project) extends SimpleToolWindowPanel
 
     this.setToolbar(toolbarPanel)
 
+    val changeListManager: ChangeListManager = ChangeListManager.getInstance(this.project)
+    changeListManager.addChangeListListener(this.changeListener)
+    Disposer.register(this.project, new Disposable() {
+      def dispose() {
+        changeListManager.removeChangeListListener(GitDiffView.this.changeListener)
+      }
+    })
+
+    /*
     this.project.getMessageBus.connect.subscribe(RemoteRevisionsCache.REMOTE_VERSION_CHANGED, new Runnable() {
       def run() {
         ApplicationManager.getApplication.invokeLater(new Runnable() {
@@ -78,6 +94,7 @@ class GitDiffView()(implicit val project: Project) extends SimpleToolWindowPanel
         }, ModalityState.NON_MODAL, GitDiffView.this.project.getDisposed)
       }
     })
+    */
 
     refreshView()
   }
@@ -122,38 +139,54 @@ class GitDiffView()(implicit val project: Project) extends SimpleToolWindowPanel
   }
 
   private def refreshView() {
-    if (this.disposed || !this.project.isInitialized || ApplicationManager.getApplication.isUnitTestMode || !Utils.validForProject(project)) {
-      return
-    }
+    if (!(this.disposed || !this.project.isInitialized || ApplicationManager.getApplication.isUnitTestMode || !Utils.validForProject(project))) {
 
-    //this.expander
+      //this.expander
 
-    val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(this.project)
+      val changeListManager: ChangeListManagerImpl = ChangeListManagerImpl.getInstanceImpl(this.project)
 
-    val gitChangeLists: Array[ChangeList] = getGitChangesSinceBranch()
-    val changeLists: Array[ChangeList] = (changeListManager.getChangeListsCopy ++ gitChangeLists).toArray
+      val gitChangeLists: Array[ChangeList] = getGitChangesSinceBranch()
+      val changeLists: Array[ChangeList] = (changeListManager.getChangeListsCopy ++ gitChangeLists).toArray
 
-    this.changesView.updateModel(new TreeModelBuilder(this.project, this.changesView.isShowFlatten)
-      .set(
-        changeLists.toSeq,
-        changeListManager.getDeletedFiles,
-        changeListManager.getModifiedWithoutEditing,
-        new MultiMap[String, VirtualFile](), //changeListManager.getSwitchedFilesMap,
-        null, //changeListManager.getSwitchedRoots,
-        null,
-        changeListManager.getLockedFolders,
-        null //changeListManager.getLogicallyLockedFolders
+      this.changesView.updateModel(new TreeModelBuilder(this.project, this.changesView.isShowFlatten)
+        .set(
+          changeLists.toSeq,
+          changeListManager.getDeletedFiles,
+          changeListManager.getModifiedWithoutEditing,
+          new MultiMap[String, VirtualFile](), //changeListManager.getSwitchedFilesMap,
+          null, //changeListManager.getSwitchedRoots,
+          null,
+          changeListManager.getLockedFolders,
+          null //changeListManager.getLogicallyLockedFolders
+        )
+        .setUnversioned(changeListManager.getUnversionedFiles, changeListManager.getUnversionedFilesSize)
+        .build
       )
-      .setUnversioned(changeListManager.getUnversionedFiles, changeListManager.getUnversionedFilesSize)
-      .build
-    )
 
-    expander.expandAll()
-    //changeDetails()
+      expander.expandAll()
+      //changeDetails()
+    }
+  }
+
+  def scheduleRefresh(): Unit = {
+    if (!(this.disposed || ApplicationManager.getApplication.isHeadlessEnvironment || this.project.isDisposed || !Utils.validForProject(project))) {
+      val was: Int = repaintAlarm.cancelAllRequests
+      if (GitDiffView.LOG.isDebugEnabled) {
+        GitDiffView.LOG.debug("schedule refresh, was " + was)
+      }
+      if (!this.repaintAlarm.isDisposed) {
+        this.repaintAlarm.addRequest(new Runnable() {
+          def run() {
+            refreshView()
+          }
+        }, 100, ModalityState.NON_MODAL)
+      }
+    }
   }
 
   def disposeContent(): Unit = {
     this.disposed = true
+    this.repaintAlarm.cancelAllRequests
   }
 
   private class ChangesExpander extends TreeExpander {
@@ -181,6 +214,29 @@ class GitDiffView()(implicit val project: Project) extends SimpleToolWindowPanel
     override def actionPerformed(e: AnActionEvent): Unit = GitDiffView.this.refreshView()
   }
 
+  private class GitDiffChangelistListener extends ChangeListListener {
+    override def changeListAdded(list: ChangeList): Unit = scheduleRefresh()
+
+    override def changeListChanged(list: ChangeList): Unit = scheduleRefresh()
+
+    override def changeListCommentChanged(list: ChangeList, oldComment: String): Unit = scheduleRefresh()
+
+    override def changeListRemoved(list: ChangeList): Unit = scheduleRefresh()
+
+    override def changeListRenamed(list: ChangeList, oldName: String): Unit = scheduleRefresh()
+
+    override def changeListUpdateDone(): Unit = scheduleRefresh()
+
+    override def changesAdded(changes: util.Collection[Change], toList: ChangeList): Unit = scheduleRefresh()
+
+    override def changesMoved(changes: util.Collection[Change], fromList: ChangeList, toList: ChangeList): Unit = scheduleRefresh()
+
+    override def changesRemoved(changes: util.Collection[Change], fromList: ChangeList): Unit = scheduleRefresh()
+
+    override def defaultListChanged(oldDefaultList: ChangeList, newDefaultList: ChangeList): Unit = scheduleRefresh()
+
+    override def unchangedFileStatusChanged(): Unit = scheduleRefresh()
+  }
 }
   /*
   EmptyAction.registerWithShortcutSet("ChangesView.Refresh", CommonShortcuts.getRerun, this)
