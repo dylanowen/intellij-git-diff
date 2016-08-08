@@ -2,7 +2,7 @@
 <idea-plugin version="2">
     <id>com.dylowen.gittrunkdiff</id>
     <name>Git Trunk Diff</name>
-    <version>0.1</version>
+    <version>0.2</version>
     <vendor email="dyltotheo@gmail.com" url="https://github.com/dylanowen">Dylan Owen</vendor>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
@@ -18,13 +18,15 @@
   -->
     <!--
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow id="Git Diff" icon="/MainToolWindow/git-icon.png" anchor="bottom" factoryClass="com.dylowen.gittrunkdiff.MainToolWindow" conditionClass="com.dylowen.gittrunkdiff.MainToolWindow" />
+
     </extensions>
 
     -->
     <extensions defaultExtensionNs="com.intellij">
-        <projectConfigurable displayName="Git Trunk" provider="com.dylowen.gittrunkdiff.config.GitTrunkConfigurableProvider"/>
+        <applicationConfigurable displayName="Git Trunk: Application" provider="com.dylowen.gittrunkdiff.configurable.ApplicationConfigurableProvider"/>
+        <projectConfigurable displayName="Git Trunk: Project" provider="com.dylowen.gittrunkdiff.configurable.ProjectConfigurableProvider"/>
         <changesViewContent tabName="Git Trunk" className="com.dylowen.gittrunkdiff.VcsTab" predicateClassName="com.dylowen.gittrunkdiff.ShowVcsTab" />
+        <toolWindow id="Git Diff" icon="/MainToolWindow/git-icon.png" anchor="bottom" factoryClass="com.dylowen.gittrunkdiff.MainToolWindow" conditionClass="com.dylowen.gittrunkdiff.MainToolWindow" />
         <!--<openapi.vcs.actions.AnnotateToggleAction.Provider implementation="com.dylowen.gittrunkdiff.AnnotateGitDiff"/>-->
     </extensions>
 

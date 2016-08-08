@@ -2,6 +2,7 @@ package com.dylowen.gittrunkdiff
 
 import java.util
 
+import com.dylowen.gittrunkdiff.settings.ProjectSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.{ProjectLevelVcsManager, VcsRoot}
 import com.intellij.openapi.vfs.VirtualFile
@@ -76,8 +77,4 @@ object Utils {
 
     ProjectLevelVcsManager.getInstance(project).checkVcsIsActive(gitVcs)
   }
-}
-
-class ShowVcsTab extends NotNullFunction[Project, Boolean] {
-  override def fun(project: Project): Boolean = Utils.validForProject(project)
 }

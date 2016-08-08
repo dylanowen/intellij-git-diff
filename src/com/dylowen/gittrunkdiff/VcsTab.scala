@@ -2,8 +2,10 @@ package com.dylowen.gittrunkdiff
 
 import javax.swing.JComponent
 
+import com.dylowen.gittrunkdiff.settings.ApplicationSettings
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ui.ChangesViewContentProvider
+import com.intellij.util.NotNullFunction
 
 
 /**
@@ -14,12 +16,11 @@ import com.intellij.openapi.vcs.changes.ui.ChangesViewContentProvider
  */
 /** {@link CommittedChangesViewManager} */
 
-class VcsTab(val project: Project) extends ChangesViewContentProvider {
-
+class VcsTab(implicit val project: Project) extends ChangesViewContentProvider {
   var gitDiffView: Option[GitDiffView] = None
 
   override def initContent(): JComponent = {
-    val gitDiffView = new GitDiffView(this.project)
+    val gitDiffView = new GitDiffView()
     this.gitDiffView = Some(gitDiffView)
 
     gitDiffView
@@ -30,9 +31,11 @@ class VcsTab(val project: Project) extends ChangesViewContentProvider {
 
     this.gitDiffView = None
   }
+}
 
-
-
+class ShowVcsTab extends NotNullFunction[Project, Boolean] {
+  override def fun(project: Project): Boolean = Utils.validForProject(project) && !ApplicationSettings.getShowOwnToolbar()
+}
 
     /*
     val myBrowser = new CommittedChangesTreeBrowser(project, Collections.emptyList[CommittedChangeList])
@@ -45,8 +48,3 @@ class VcsTab(val project: Project) extends ChangesViewContentProvider {
     //myConnection.subscribe(CommittedChangesCache.COMMITTED_TOPIC, new IncomingChangesViewProvider#MyCommittedChangesListener)
     //loadChangesToBrowser(false, true)
     */
-
-
-
-
-}
