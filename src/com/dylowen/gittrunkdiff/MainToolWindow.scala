@@ -1,6 +1,8 @@
 package com.dylowen.gittrunkdiff
 
 import com.dylowen.gittrunkdiff.settings.ApplicationSettings
+import com.dylowen.gittrunkdiff.toolwindow.GitDiffToolContent
+import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Condition
@@ -19,13 +21,10 @@ class MainToolWindow extends ToolWindowFactory with Condition[Project] {
   def createToolWindowContent(project: Project, toolWindow: ToolWindow): Unit = {
     implicit val iProject = project
 
-    val gitDiffView: GitDiffView = new GitDiffView()
+    val gitDiffView: GitDiffToolContent = new GitDiffToolContent()
 
-    val panel: SimpleToolWindowPanel = new SimpleToolWindowPanel(false, true)
-    val content = ContentFactory.SERVICE.getInstance().createContent(panel, "", false)
+    val content = ContentFactory.SERVICE.getInstance().createContent(gitDiffView, "", false)
     content.setCloseable(true)
-
-    panel.setContent(gitDiffView)
 
     toolWindow.getContentManager.addContent(content)
   }

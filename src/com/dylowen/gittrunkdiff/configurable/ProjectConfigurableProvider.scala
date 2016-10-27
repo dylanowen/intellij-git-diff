@@ -3,8 +3,8 @@ package com.dylowen.gittrunkdiff.configurable
 import java.awt.FlowLayout
 import javax.swing._
 
-import com.dylowen.gittrunkdiff.Utils
 import com.dylowen.gittrunkdiff.settings.ProjectSettings
+import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
 import git4idea.GitBranch
 import git4idea.repo.GitRepository

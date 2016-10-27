@@ -27,5 +27,4 @@ abstract class SettingsConfigurable extends JComponent with Disposable with Sett
     wrapper.setLayout(new FlowLayout(FlowLayout.LEFT))
     container.add(component)
   }
-
 }

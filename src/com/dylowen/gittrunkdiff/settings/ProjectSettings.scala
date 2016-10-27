@@ -1,6 +1,6 @@
 package com.dylowen.gittrunkdiff.settings
 
-import com.dylowen.gittrunkdiff.Utils
+import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
 import git4idea.GitBranch
 import git4idea.repo.GitRepository

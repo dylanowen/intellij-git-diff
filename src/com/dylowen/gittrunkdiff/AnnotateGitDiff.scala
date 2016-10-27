@@ -9,6 +9,8 @@ import com.intellij.openapi.vcs.actions.AnnotateToggleAction
   * @author dylan.owen
   * @since Aug-2016
   */
+
+//LineStatusMarkerRenderer
 class AnnotateGitDiff extends AnnotateToggleAction.Provider {
   override def isEnabled(e: AnActionEvent): Boolean = true
 

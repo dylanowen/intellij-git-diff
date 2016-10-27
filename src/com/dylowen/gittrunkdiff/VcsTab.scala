@@ -3,6 +3,8 @@ package com.dylowen.gittrunkdiff
 import javax.swing.JComponent
 
 import com.dylowen.gittrunkdiff.settings.ApplicationSettings
+import com.dylowen.gittrunkdiff.toolwindow.GitDiffToolContent
+import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ui.ChangesViewContentProvider
 import com.intellij.util.NotNullFunction
@@ -17,10 +19,10 @@ import com.intellij.util.NotNullFunction
 /** {@link CommittedChangesViewManager} */
 
 class VcsTab(implicit val project: Project) extends ChangesViewContentProvider {
-  var gitDiffView: Option[GitDiffView] = None
+  var gitDiffView: Option[GitDiffToolContent] = None
 
   override def initContent(): JComponent = {
-    val gitDiffView = new GitDiffView()
+    val gitDiffView = new GitDiffToolContent()
     this.gitDiffView = Some(gitDiffView)
 
     gitDiffView

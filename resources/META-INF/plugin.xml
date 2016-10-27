@@ -34,6 +34,13 @@
         <!-- Add your actions here -->
     </actions>
 
+    <project-components>
+        <component>
+            <interface-class>com.dylowen.gittrunkdiff.editor.EditorLineTracker</interface-class>
+            <implementation-class>com.dylowen.gittrunkdiff.editor.EditorLineTracker</implementation-class>
+        </component>
+    </project-components>
+
 <!--
     <project-components>
         <component>
