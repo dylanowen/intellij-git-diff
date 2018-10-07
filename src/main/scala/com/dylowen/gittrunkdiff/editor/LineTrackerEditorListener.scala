@@ -1,4 +1,4 @@
-package com.dylowen.gittrunkdiff.editor.listener
+package com.dylowen.gittrunkdiff.editor
 
 import com.intellij.openapi.editor.event.{EditorFactoryEvent, EditorFactoryListener}
 import com.intellij.openapi.editor.{Document, Editor}

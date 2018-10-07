@@ -1,18 +1,41 @@
 package com.dylowen.gittrunkdiff.editor
 
+import com.dylowen.gittrunkdiff.GitActions
+import com.dylowen.gittrunkdiff.utils.JavaConversions._
+import com.dylowen.gittrunkdiff.utils.{Logging, Utils}
+import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.{Application, ModalityState}
+import com.intellij.openapi.components.ProjectComponent
+import com.intellij.openapi.editor.{Document, EditorFactory}
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.startup.StartupManager
+import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.vcs.ex.LineStatusTracker
+import com.intellij.openapi.vcs.history.VcsRevisionNumber
+import com.intellij.openapi.vcs.versionBrowser.CommittedChangeList
+import com.intellij.openapi.vcs.{AbstractVcs, FileStatus, FileStatusManager, ProjectLevelVcsManager}
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.testFramework.LightVirtualFile
+import com.intellij.util.concurrency.QueueProcessorRemovePartner
+import git4idea.GitVcs
+import net.jcip.annotations.GuardedBy
+
+import scala.collection.concurrent.TrieMap
+import scala.collection.mutable
+
 /**
   * TODO add description
   *
   * @author dylan.owen
   * @since Aug-2016
   */
-/*
 private[editor] trait EditorManager {
   private[editor] def installTracker(file: VirtualFile, document: Document): Unit
   private[editor] def uninstallTracker(document: Document): Unit
   private[editor] def resetTracker(file: VirtualFile): Unit
 }
-object EditorLineTracker extends Loggable
+
+object EditorLineTracker extends Logging
 class EditorLineTracker(private[editor] val project: Project,
                         private val vcsManager: ProjectLevelVcsManager,
                         private val application: Application)
@@ -174,4 +197,3 @@ class EditorLineTracker(private[editor] val project: Project,
     }
   }
 }
-*/

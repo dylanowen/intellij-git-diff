@@ -65,14 +65,25 @@ object GitActions extends Logging {
     }
   }
 
-  /*
   def getRevisionWhenBranched(gitRepo: GitRepository)(implicit project: Project): GitRevisionNumber = {
     val currentBranch: GitBranch = gitRepo.getCurrentBranch
     val master: GitBranch = ProjectSettings.getMasterBranch(gitRepo)
 
-    mergeBase(master, currentBranch, gitRepo)
+
+    mergeBase(master, currentBranch, gitRepo) match {
+      case Right(maybeRevisionNumber) => maybeRevisionNumber
+        .map((lastBranchRevision: GitRevisionNumber) => {
+          val changes: util.Collection[Change] = GitChangeUtils.getDiff(project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
+
+          new GitBranchChangeList(currentBranch, changes)
+        })
+      case Left(gitError) => {
+        gitError.log(logger)
+
+        None
+      }
+    }
   }
-  */
 
   def getFileAtRevision(file: VirtualFile, revisionNumber: VcsRevisionNumber, gitRepo: GitRepository)(implicit project: Project): String = {
     new String(getFileAtRevisionRaw(file, revisionNumber, gitRepo), file.getCharset)
