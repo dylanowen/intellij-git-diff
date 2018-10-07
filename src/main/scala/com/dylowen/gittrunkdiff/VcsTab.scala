@@ -1,9 +1,7 @@
 package com.dylowen.gittrunkdiff
 
 import javax.swing.JComponent
-
 import com.dylowen.gittrunkdiff.settings.ApplicationSettings
-import com.dylowen.gittrunkdiff.toolwindow.GitDiffToolContent
 import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vcs.changes.ui.ChangesViewContentProvider
@@ -11,32 +9,31 @@ import com.intellij.util.NotNullFunction
 
 
 /**
- * TODO add description
+ * [[com.intellij.openapi.vcs.changes.committed.CommittedChangesViewManager]]
  *
  * @author dylan.owen
  * @since Jul-2016
  */
-/** {@link CommittedChangesViewManager} */
-
 class VcsTab(implicit val project: Project) extends ChangesViewContentProvider {
-  var gitDiffView: Option[GitDiffToolContent] = None
+  @volatile
+  var gitDiffManager: Option[GitDiffManager] = None
 
   override def initContent(): JComponent = {
-    val gitDiffView = new GitDiffToolContent()
-    this.gitDiffView = Some(gitDiffView)
+    val newManager = new GitDiffManager()
+    this.gitDiffManager = Some(newManager)
 
-    gitDiffView
+    newManager.panel
   }
 
   override def disposeContent(): Unit = {
-    this.gitDiffView.foreach(_.disposeContent())
+    this.gitDiffManager.foreach(_.disposeContent())
 
-    this.gitDiffView = None
+    this.gitDiffManager = None
   }
 }
 
 class ShowVcsTab extends NotNullFunction[Project, Boolean] {
-  override def fun(project: Project): Boolean = Utils.validForProject(project) && !ApplicationSettings.getShowOwnToolbar()
+  override def fun(project: Project): Boolean = Utils.validForProject(project) && !ApplicationSettings.showOwnToolbar
 }
 
     /*

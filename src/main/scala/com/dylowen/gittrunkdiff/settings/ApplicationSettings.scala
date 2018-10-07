@@ -1,7 +1,5 @@
 package com.dylowen.gittrunkdiff.settings
 
-import com.intellij.openapi.project.Project
-
 /**
   * TODO add description
   *
@@ -9,21 +7,18 @@ import com.intellij.openapi.project.Project
   * @since Aug-2016
   */
 object ApplicationSettings {
-  private val showOwnToolbarKey: String = "showOwnToolbar"
+  private val ShowOwnToolbarKey: String = "showOwnToolbar"
 
-  def getShowOwnToolbar(): Boolean = {
-    val showOwnToolbar: Option[Boolean] = Settings.application.getBoolean(showOwnToolbarKey)
-    if (showOwnToolbar.isDefined) {
-      showOwnToolbar.get
-    }
-    else {
-      setShowOwnToolbar(true)
+  def showOwnToolbar: Boolean = {
+    Settings.application.getBoolean(ShowOwnToolbarKey)
+      .getOrElse({
+        showOwnToolbar = true
 
-      true
-    }
+        true
+      })
   }
 
-  def setShowOwnToolbar(showOwnToolbar: Boolean): Unit = {
-    Settings.application.setBoolean(showOwnToolbarKey, showOwnToolbar)
+  def showOwnToolbar_=(showOwnToolbar: Boolean): Unit = {
+    Settings.application.setBoolean(ShowOwnToolbarKey, showOwnToolbar)
   }
 }

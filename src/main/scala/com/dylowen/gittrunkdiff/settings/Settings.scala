@@ -12,7 +12,7 @@ import com.intellij.openapi.project.Project
 object Settings {
   val PROPERTIES_PREFIX: String = "com.dylowen.gitdiff."
 
-  private def getBoolean(properties: PropertiesComponent) = (key: String) => {
+  private def getBoolean(properties: PropertiesComponent): String => Option[Boolean] = (key: String) => {
     val fullKey: String = Settings.PROPERTIES_PREFIX + key
 
     if (properties.isValueSet(fullKey)) {
@@ -41,7 +41,7 @@ object Settings {
   }
 
   class Properties(properties: PropertiesComponent) {
-    def getBoolean = Settings.getBoolean(properties)
+    def getBoolean: String => Option[Boolean] = Settings.getBoolean(properties)
     def setBoolean = Settings.setBoolean(properties)
     def getString = Settings.getString(properties)
     def setString = Settings.setString(properties)

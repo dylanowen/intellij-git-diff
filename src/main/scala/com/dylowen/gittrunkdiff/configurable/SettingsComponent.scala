@@ -9,7 +9,7 @@ package com.dylowen.gittrunkdiff.configurable
 trait SettingsComponent {
   def isModified: Boolean
 
-  def apply(): Unit
+  def save(): Unit
 
   def reset(): Unit
 }

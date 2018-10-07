@@ -1,10 +1,9 @@
 package com.dylowen.gittrunkdiff.configurable
 
 import java.awt.FlowLayout
-import javax.swing.{BoxLayout, JCheckBox, JPanel}
 
 import com.dylowen.gittrunkdiff.settings.ApplicationSettings
-import com.intellij.openapi.project.Project
+import javax.swing.{BoxLayout, JCheckBox, JPanel}
 
 /**
   * TODO add description
@@ -13,10 +12,10 @@ import com.intellij.openapi.project.Project
   * @since Aug-2016
   */
 class ApplicationConfigurableProvider() extends ConfigurableProviderImpl {
-  override def getComponent: SettingsConfigurable = new SettingsConfigurable {
+  override def getComponent: SettingsConfigurable[Boolean] = new SettingsConfigurable[Boolean] {
     {
       val showOwnToolbar: ShowOwnToolbarCheckBox = new ShowOwnToolbarCheckBox("Show In Own Toolbar")
-      this.settingsComponents = Array(showOwnToolbar)
+      this.settingsComponents = Seq(showOwnToolbar)
 
       setLayout(new FlowLayout(FlowLayout.LEFT))
       val wrapper: JPanel = new JPanel()
@@ -34,12 +33,13 @@ class ApplicationConfigurableProvider() extends ConfigurableProviderImpl {
 
       def setVisualValue(value: Boolean): Unit = setSelected(value)
 
-      def getSetting: Boolean = ApplicationSettings.getShowOwnToolbar
+      def getSetting: Boolean = ApplicationSettings.showOwnToolbar
 
-      def setSetting(value: Boolean): Unit = ApplicationSettings.setShowOwnToolbar(value)
+      def setSetting(value: Boolean): Unit = {
+        ApplicationSettings.showOwnToolbar = value
+      }
 
       init()
     }
-
   }
 }

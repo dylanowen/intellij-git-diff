@@ -1,6 +1,5 @@
 package com.dylowen.gittrunkdiff.editor.listener
 
-import com.dylowen.gittrunkdiff.editor.EditorManager
 import com.intellij.openapi.editor.event.{EditorFactoryEvent, EditorFactoryListener}
 import com.intellij.openapi.editor.{Document, Editor}
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -15,7 +14,7 @@ import com.intellij.openapi.vfs.VirtualFile
   * @since Oct-2016
   */
 
-private[editor] class LineTrackerEditorListener(private val editorManager: EditorManager, private val project: Project) extends EditorFactoryListener {
+private[editor] class LineTrackerEditorListener(/*private val editorManager: EditorManager,*/ private val project: Project) extends EditorFactoryListener {
   override def editorCreated(event: EditorFactoryEvent): Unit = {
     val editor: Editor = event.getEditor
 
@@ -25,7 +24,7 @@ private[editor] class LineTrackerEditorListener(private val editorManager: Edito
       val virtualFile: VirtualFile = FileDocumentManager.getInstance.getFile(document)
 
       if (virtualFile != null) {
-        this.editorManager.installTracker(virtualFile, document)
+        //this.editorManager.installTracker(virtualFile, document)
       }
     }
   }
@@ -45,7 +44,7 @@ private[editor] class LineTrackerEditorListener(private val editorManager: Edito
     // com.intellij.openapi.vcs.impl.LineStatusTrackerManager.MyEditorFactoryListener.editorReleased
     val editors: Array[Editor] = event.getFactory.getEditors(document, this.project)
     if (editors.isEmpty || (editors.length == 1 && editor == editors(0))) {
-      this.editorManager.uninstallTracker(document)
+      //this.editorManager.uninstallTracker(document)
     }
   }
 }

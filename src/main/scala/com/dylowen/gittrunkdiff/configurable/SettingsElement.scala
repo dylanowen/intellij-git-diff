@@ -19,7 +19,7 @@ trait SettingsElement[T] extends SettingsComponent {
 
   override def isModified: Boolean = !this.lastValue.equals(getVisualValue)
 
-  override def apply(): Unit = {
+  override def save(): Unit = {
     val value: T = getVisualValue
     setSetting(value)
     this.lastValue = value

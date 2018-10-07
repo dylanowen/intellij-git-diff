@@ -1,18 +1,23 @@
-package com.dylowen.gittrunkdiff.utils
+package com.dylowen.gittrunkdiff
 
 import java.util
 
 import com.dylowen.gittrunkdiff.settings.ProjectSettings
+import com.dylowen.gittrunkdiff.utils.Logging
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vcs.VcsException
 import com.intellij.openapi.vcs.changes.{Change, ChangeList}
 import com.intellij.openapi.vcs.history.VcsRevisionNumber
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.vcsUtil.VcsFileUtil
 import git4idea.changes.GitChangeUtils
-import git4idea.commands.{GitCommand, GitSimpleHandler}
+import git4idea.history.GitHistoryUtils
 import git4idea.repo.GitRepository
 import git4idea.util.GitFileUtils
 import git4idea.{GitBranch, GitRevisionNumber}
+
+import scala.util.control.NonFatal
 
 /**
   * TODO add description
@@ -20,29 +25,54 @@ import git4idea.{GitBranch, GitRevisionNumber}
   * @author dylan.owen
   * @since Aug-2016
   */
-object GitActions {
-  def mergeBase(branchA: GitBranch, branchB: GitBranch, gitRepository: GitRepository)(implicit project: Project): GitRevisionNumber = mergeBase(branchA, branchB, gitRepository.getRoot)
+object GitActions extends Logging {
 
-  def mergeBase(branchA: GitBranch, branchB: GitBranch, root: VirtualFile)(implicit project: Project): GitRevisionNumber = mergeBase(branchA.getFullName, branchB.getFullName, root)
-
-  def mergeBase(branchA: String, branchB: String, root: VirtualFile)(implicit project: Project): GitRevisionNumber = {
-    val handler: GitSimpleHandler = new GitSimpleHandler(project, root, GitCommand.MERGE_BASE)
-
-    handler.addParameters(branchA, branchB)
-    handler.setSilent(true)
-    handler.setStdoutSuppressed(true)
-
-    val revisionString: String = handler.run().trim
-
-    GitRevisionNumber.resolve(project, root, revisionString)
+  sealed trait GitError {
+    def log(logger: Logger): Unit
   }
 
+  case class GitException(exception: VcsException) extends GitError {
+    override def log(logger: Logger): Unit = {
+      logger.error(exception.getMessage)
+    }
+  }
+
+  case class UnexpectedException(throwable: Throwable) extends GitError {
+    override def log(logger: Logger): Unit = {
+      logger.error(throwable.getMessage)
+    }
+  }
+
+
+  def mergeBase(branchA: GitBranch, branchB: GitBranch, gitRepository: GitRepository)
+               (implicit project: Project): Either[GitError, Option[GitRevisionNumber]] = {
+    mergeBase(branchA, branchB, gitRepository.getRoot)
+  }
+
+  def mergeBase(branchA: GitBranch, branchB: GitBranch, root: VirtualFile)
+               (implicit project: Project): Either[GitError, Option[GitRevisionNumber]] = {
+    mergeBase(branchA.getFullName, branchB.getFullName, root)
+  }
+
+  def mergeBase(branchA: String, branchB: String, root: VirtualFile)
+               (implicit project: Project): Either[GitError, Option[GitRevisionNumber]] = {
+    try {
+      Right(Option(GitHistoryUtils.getMergeBase(project, root, branchA, branchB)))
+    }
+    catch {
+      case vcsException: VcsException => Left(GitException(vcsException))
+      case NonFatal(t) => Left(UnexpectedException(t))
+    }
+  }
+
+  /*
   def getRevisionWhenBranched(gitRepo: GitRepository)(implicit project: Project): GitRevisionNumber = {
     val currentBranch: GitBranch = gitRepo.getCurrentBranch
     val master: GitBranch = ProjectSettings.getMasterBranch(gitRepo)
 
-    GitActions.mergeBase(master, currentBranch, gitRepo)
+    mergeBase(master, currentBranch, gitRepo)
   }
+  */
 
   def getFileAtRevision(file: VirtualFile, revisionNumber: VcsRevisionNumber, gitRepo: GitRepository)(implicit project: Project): String = {
     new String(getFileAtRevisionRaw(file, revisionNumber, gitRepo), file.getCharset)
@@ -64,11 +94,19 @@ object GitActions {
     if (!master.equals(currentBranch)) {
       val repoRoot: VirtualFile = gitRepo.getRoot
 
-      val lastBranchRevision: GitRevisionNumber = GitActions.mergeBase(master, currentBranch, repoRoot)
+      mergeBase(master, currentBranch, repoRoot) match {
+        case Right(maybeRevisionNumber) => maybeRevisionNumber
+          .map((lastBranchRevision: GitRevisionNumber) => {
+            val changes: util.Collection[Change] = GitChangeUtils.getDiff(project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
 
-      val changes = GitChangeUtils.getDiff(project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
+            new GitBranchChangeList(currentBranch, changes)
+          })
+        case Left(gitError) => {
+          gitError.log(logger)
 
-      Some(new GitBranchChangeList(currentBranch, changes))
+          None
+        }
+      }
     }
     else {
       // we don't care if we're on the master branch already
@@ -83,4 +121,5 @@ object GitActions {
 
     override def getChanges: util.Collection[Change] = this.changes
   }
+
 }

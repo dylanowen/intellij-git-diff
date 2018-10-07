@@ -12,10 +12,10 @@ import com.intellij.openapi.util.Disposer
   * @since Aug-2016
   */
 abstract class ConfigurableProviderImpl extends ConfigurableProvider {
-  def getComponent: SettingsConfigurable
+  def getComponent: SettingsConfigurable[_]
 
   def createConfigurable(): Configurable = new Configurable {
-    var component: Option[SettingsConfigurable] = None
+    var component: Option[SettingsConfigurable[_]] = None
 
     override def getDisplayName: String = "Git Trunk"
 
@@ -36,7 +36,7 @@ abstract class ConfigurableProviderImpl extends ConfigurableProvider {
 
     override def isModified: Boolean = this.component.exists(_.isModified)
 
-    override def apply(): Unit = this.component.foreach(_.apply())
+    override def apply(): Unit = this.component.foreach(_.save())
 
     override def reset(): Unit = this.component.foreach(_.reset())
   }

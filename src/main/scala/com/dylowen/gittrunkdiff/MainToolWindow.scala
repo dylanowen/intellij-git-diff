@@ -1,13 +1,11 @@
 package com.dylowen.gittrunkdiff
 
 import com.dylowen.gittrunkdiff.settings.ApplicationSettings
-import com.dylowen.gittrunkdiff.toolwindow.GitDiffToolContent
 import com.dylowen.gittrunkdiff.utils.Utils
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Condition
 import com.intellij.openapi.wm.{ToolWindow, ToolWindowFactory}
-import com.intellij.ui.content.ContentFactory
+import com.intellij.ui.content.{Content, ContentFactory}
 
 //import git4idea.GitVcs
 
@@ -18,12 +16,12 @@ import com.intellij.ui.content.ContentFactory
   * @since Apr-2016
   */
 class MainToolWindow extends ToolWindowFactory with Condition[Project] {
-  def createToolWindowContent(project: Project, toolWindow: ToolWindow): Unit = {
-    implicit val iProject = project
+  override def createToolWindowContent(project: Project, toolWindow: ToolWindow): Unit = {
+    implicit val _project: Project = project
 
-    val gitDiffView: GitDiffToolContent = new GitDiffToolContent()
+    val gitDiffManager: GitDiffManager = new GitDiffManager()
 
-    val content = ContentFactory.SERVICE.getInstance().createContent(gitDiffView, "", false)
+    val content: Content = ContentFactory.SERVICE.getInstance().createContent(gitDiffManager.panel, "", false)
     content.setCloseable(true)
 
     toolWindow.getContentManager.addContent(content)
@@ -32,5 +30,6 @@ class MainToolWindow extends ToolWindowFactory with Condition[Project] {
   /**
     * @return whether git is enabled for this project
     */
-  def value(project: Project): Boolean = Utils.validForProject(project) && ApplicationSettings.getShowOwnToolbar()
+  override def value(project: Project): Boolean = Utils.validForProject(project) && ApplicationSettings.showOwnToolbar
+
 }

@@ -8,16 +8,27 @@ plugins {
     id "org.jetbrains.intellij" version "0.3.11"
 }
 
-apply plugin: 'idea'
 apply plugin: 'org.jetbrains.intellij'
 apply plugin: 'java'
 apply plugin: 'scala'
 
+repositories {
+    mavenCentral()
+}
+
 group 'com.dylowen'
 version '0.1'
 
+def versions = [
+        scala: '2.12'
+]
+
+dependencies {
+    compile "org.scala-lang:scala-library:${versions.scala}.7"
+}
+
 intellij {
-    version 'IC-2018.2.4' //IntelliJ IDEA 2016.3 dependency; for a full list of IntelliJ IDEA releases please see https://www.jetbrains.com/intellij-repository/releases
+    version 'IC-2018.2.4' //For a full list of IntelliJ IDEA releases please see https://www.jetbrains.com/intellij-repository/releases
     plugins 'git4idea' //Bundled plugin dependencies
     pluginName 'intellij-git-diff'
 }

@@ -15,16 +15,15 @@ object ProjectSettings {
 
   def getMasterBranch(repo: GitRepository)(implicit project: Project): GitBranch = {
     val key: String = masterBranchKey(repo)
-    val master: Option[GitBranch] = Settings.project(project).getString(key).flatMap(Utils.getBranch(_, repo))
-    if (master.isDefined) {
-      master.get
-    }
-    else {
-      val masterBranch: GitBranch = Utils.guessMasterBranch(repo)
-      setMasterBranch(repo, masterBranch)
 
-      masterBranch
-    }
+    Settings.project(project).getString(key)
+      .flatMap(Utils.getBranch(_, repo))
+      .getOrElse({
+        val masterBranch: GitBranch = Utils.guessMasterBranch(repo)
+        setMasterBranch(repo, masterBranch)
+
+        masterBranch
+      })
   }
 
   def setMasterBranch(repo: GitRepository, branch: GitBranch)(implicit project: Project): Unit = {

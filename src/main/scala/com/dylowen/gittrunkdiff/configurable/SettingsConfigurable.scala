@@ -11,16 +11,18 @@ import com.intellij.openapi.Disposable
   * @author dylan.owen
   * @since Aug-2016
   */
-abstract class SettingsConfigurable extends JComponent with Disposable with SettingsComponent {
-  protected var settingsComponents: Array[SettingsElement[_]] = Array()
+abstract class SettingsConfigurable[T] extends JComponent with Disposable with SettingsComponent {
+  protected var settingsComponents: Seq[SettingsElement[T]] = Seq()
 
-  override def dispose(): Unit = this.settingsComponents = Array()
+  override def dispose(): Unit = {
+    settingsComponents = Seq()
+  }
 
-  def isModified: Boolean = !this.settingsComponents.forall(!_.isModified)
+  def isModified: Boolean = settingsComponents.exists(_.isModified)
 
-  def apply(): Unit = this.settingsComponents.foreach(_.apply())
+  def save(): Unit = settingsComponents.foreach(_.save())
 
-  def reset(): Unit = this.settingsComponents.foreach(_.reset())
+  def reset(): Unit = settingsComponents.foreach(_.reset())
 
   protected def wrap(container: JComponent, component: JComponent): Unit = {
     val wrapper: JPanel = new JPanel()
