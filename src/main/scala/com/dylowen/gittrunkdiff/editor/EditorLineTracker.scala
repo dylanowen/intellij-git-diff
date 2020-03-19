@@ -16,7 +16,7 @@ import com.intellij.openapi.vcs.versionBrowser.CommittedChangeList
 import com.intellij.openapi.vcs.{AbstractVcs, FileStatus, FileStatusManager, ProjectLevelVcsManager}
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.testFramework.LightVirtualFile
-import com.intellij.util.concurrency.QueueProcessorRemovePartner
+//import com.intellij.util.concurrency.QueueProcessorRemovePartner
 import git4idea.GitVcs
 import net.jcip.annotations.GuardedBy
 
@@ -29,6 +29,7 @@ import scala.collection.mutable
   * @author dylan.owen
   * @since Aug-2016
   */
+/*
 private[editor] trait EditorManager {
   private[editor] def installTracker(file: VirtualFile, document: Document): Unit
   private[editor] def uninstallTracker(document: Document): Unit
@@ -196,4 +197,4 @@ class EditorLineTracker(private[editor] val project: Project,
       }, ModalityState.NON_MODAL, () => EditorLineTracker.this.isDisabled)
     }
   }
-}
+}*/

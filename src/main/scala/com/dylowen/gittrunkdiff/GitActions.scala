@@ -69,20 +69,19 @@ object GitActions extends Logging {
     val currentBranch: GitBranch = gitRepo.getCurrentBranch
     val master: GitBranch = ProjectSettings.getMasterBranch(gitRepo)
 
+    val repoRoot: VirtualFile = gitRepo.getRoot
 
+    null /*
     mergeBase(master, currentBranch, gitRepo) match {
       case Right(maybeRevisionNumber) => maybeRevisionNumber
-        .map((lastBranchRevision: GitRevisionNumber) => {
-          val changes: util.Collection[Change] = GitChangeUtils.getDiff(project, repoRoot, lastBranchRevision.getRev, currentBranch.getName, null)
-
-          new GitBranchChangeList(currentBranch, changes)
-        })
+          .getOrElseThrow?
       case Left(gitError) => {
         gitError.log(logger)
 
         None
       }
     }
+    */
   }
 
   def getFileAtRevision(file: VirtualFile, revisionNumber: VcsRevisionNumber, gitRepo: GitRepository)(implicit project: Project): String = {
